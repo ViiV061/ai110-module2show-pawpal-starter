@@ -1,0 +1,5 @@
+feat: implement pawpal scheduler core
+
+alt 1: feat: add pawpal core classes and scheduling
+alt 2: test: add basic task and pet unit tests
+alt 3: docs: add one-line method docstrings
