@@ -6,8 +6,11 @@
 
 - Briefly describe your initial UML design.
 - What classes did you include, and what responsibilities did you assign to each?
-
-**b. Design changes**
+  Classes：
+  Owner, Pet, Task, Scheduler
+  Core actions：
+  Add pet, schedule a walk, see today's tasks
+  **b. Design changes**
 
 - Did your design change during implementation?
 - If yes, describe at least one change and why you made it.
