@@ -78,3 +78,109 @@ todays_plan = scheduler.get_todays_tasks()
 5. Add tests to verify key behaviors.
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
+
+---
+
+## Testing PawPal+
+
+### Run Tests
+
+Execute the complete test suite with:
+
+```bash
+python -m pytest tests/test_pawpal.py -v
+```
+
+### Test Coverage
+
+The test suite includes **31 comprehensive tests** covering all critical scheduling functionality:
+
+#### ✅ Sorting Correctness (4 tests)
+
+- Tasks sorted chronologically by scheduled time (HH:MM format)
+- Secondary sorting by priority level (higher values first)
+- Stable sorting when time and priority values are identical
+- Edge cases: zero-duration tasks, maximum priority values
+
+#### ✅ Recurrence Logic (7 tests)
+
+- **Daily tasks**: Spawn next occurrence +1 day at same time
+- **Weekly tasks**: Spawn next occurrence +7 days, preserving day-of-week across month boundaries
+- **Once-only tasks**: Do NOT spawn next occurrence after completion
+- **Overdue handling**: Completion date used as reference for next occurrence (not original scheduled date)
+- **Duplicate prevention**: Doesn't spawn if next occurrence already exists
+- **Sequential completions**: Multiple completions spawn correct sequence of instances
+
+#### ✅ Conflict Detection (9 tests)
+
+- Detects overlapping times within same pet's tasks
+- Detects overlapping times across different pets (owner time constraint)
+- **Boundary behavior**: Tasks ending at 8:30 + starting at 8:30 → NO conflict
+- **Partial overlaps**: 8:00-8:30 + 8:20-8:50 → CONFLICT detected
+- **Unscheduled tasks**: Tasks without time don't trigger conflicts
+- Multi-task scenarios with single and multiple conflict pairs
+- All tasks maintain properties when detected in conflicts
+
+#### ✅ Edge Cases & Filtering (11 tests)
+
+- Invalid frequency values ('monthly', empty string) safely ignored
+- Filtering by non-existent pet names returns empty (no crash)
+- Recurring tasks correctly apply to future dates
+- Task property preservation when spawning (duration, priority, frequency)
+- Multiple priority levels sort correctly
+- Zero and normal duration tasks handled
+
+### Test Results
+
+```
+Platform: macOS (Darwin) | Python 3.10.10 | Pytest 9.0.2
+
+============================= test session starts ==============================
+collected 31 items
+
+✅ All 31 tests PASSED in 0.02s
+
+============================== 31 passed in 0.02s ==============================
+```
+
+### Confidence Level in System Reliability
+
+⭐⭐⭐⭐⭐ **5 out of 5 stars**
+
+**Why high confidence:**
+
+1. **100% Test Pass Rate** — All 31 tests pass consistently with zero failures or warnings
+2. **Complete Feature Coverage** — All three core requirements validated:
+   - Sorting correctness ✓
+   - Recurrence logic ✓
+   - Conflict detection ✓
+3. **Critical Edge Cases Tested** — Boundary conditions thoroughly validated:
+   - Duplicate prevention prevents spawning duplicates
+   - Overdue task logic correctly calculates next occurrence
+   - Boundary overlaps (8:30 end + 8:30 start) correctly identified as non-conflicting
+   - Multi-pet scheduling respects owner time constraints
+4. **Robust Input Handling** — System gracefully handles:
+   - Invalid frequency values
+   - Missing/unscheduled tasks
+   - Non-existent pet filtering
+   - Zero-duration and extreme-priority tasks
+5. **Property Preservation** — Spawned recurring tasks maintain all original attributes (duration, priority, frequency)
+6. **Multi-Scenario Testing** — Tests validate system behavior with:
+   - Single pet, multiple tasks
+   - Multiple pets, interleaved scheduling
+   - Past, present, and future date scenarios
+   - Consecutive task completions
+
+**Areas of strength:**
+
+- Core scheduler logic is solid and well-tested
+- Recurring task spawning works reliably with proper duplicate prevention
+- Conflict detection has correct boundary semantics
+- Filtering and sorting are robust and handle edge cases
+
+**Recommended future enhancements:**
+
+- Performance testing with 1000+ tasks
+- Concurrent task completion scenarios
+- Timezone/DST handling for recurring tasks
+- Integration tests with full Streamlit UI
