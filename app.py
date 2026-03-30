@@ -50,28 +50,32 @@ available_minutes = st.number_input(
     "Owner available minutes today", min_value=15, max_value=1440, value=120
 )
 
-if "pets" not in st.session_state:
-    st.session_state.pets = {}
+if "owner" not in st.session_state:
+    st.session_state.owner = Owner(name=owner_name, available_minutes=int(available_minutes))
+
+owner = st.session_state.owner
+owner.name = owner_name
+owner.available_minutes = int(available_minutes)
 
 st.markdown("### Pets")
 if st.button("Add pet"):
-    st.session_state.pets[pet_name] = {
-        "species": species,
-        "age": int(pet_age),
-        "tasks": st.session_state.pets.get(pet_name, {}).get("tasks", []),
-    }
+    pet_exists = any(existing_pet.name == pet_name for existing_pet in owner.get_pets())
+    if pet_exists:
+        st.warning(f"Pet '{pet_name}' already exists.")
+    else:
+        owner.add_pet(Pet(name=pet_name, species=species, age=int(pet_age)))
 
-if st.session_state.pets:
+if owner.get_pets():
     st.write("Current pets:")
     st.table(
         [
             {
-                "pet": name,
-                "species": data["species"],
-                "age": data["age"],
-                "task_count": len(data["tasks"]),
+                "pet": existing_pet.name,
+                "species": existing_pet.species,
+                "age": existing_pet.age,
+                "task_count": len(existing_pet.get_tasks()),
             }
-            for name, data in st.session_state.pets.items()
+            for existing_pet in owner.get_pets()
         ]
     )
 else:
@@ -80,10 +84,7 @@ else:
 st.markdown("### Tasks")
 st.caption("Add task or schedule a walk for an existing pet.")
 
-if "tasks" not in st.session_state:
-    st.session_state.tasks = []
-
-pet_options = list(st.session_state.pets.keys()) or [pet_name]
+pet_options = [existing_pet.name for existing_pet in owner.get_pets()] or [pet_name]
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -106,39 +107,46 @@ selected_date = st.date_input("Date", value=date.today())
 priority_map = {"low": 1, "medium": 2, "high": 3}
 
 if st.button("Add task"):
-    if target_pet_name not in st.session_state.pets:
+    target_pet = next((pet for pet in owner.get_pets() if pet.name == target_pet_name), None)
+    if target_pet is None:
         st.error("Add the pet first before assigning tasks.")
     else:
-        st.session_state.pets[target_pet_name]["tasks"].append(
-            {
-                "description": task_title,
-                "duration_minutes": int(duration),
-                "priority": priority_map[priority],
-                "frequency": task_frequency,
-                "scheduled_time": datetime.combine(selected_date, scheduled_time),
-                "is_completed": False,
-            }
+        target_pet.add_task(
+            Task(
+                description=task_title,
+                duration_minutes=int(duration),
+                priority=priority_map[priority],
+                frequency=task_frequency,
+                scheduled_time=datetime.combine(selected_date, scheduled_time),
+                is_completed=False,
+            )
         )
 
 if st.button("Schedule a walk"):
-    if target_pet_name not in st.session_state.pets:
+    target_pet = next((pet for pet in owner.get_pets() if pet.name == target_pet_name), None)
+    if target_pet is None:
         st.error("Add the pet first before scheduling a walk.")
     else:
-        st.session_state.pets[target_pet_name]["tasks"].append(
-            {
-                "description": f"Walk {target_pet_name}",
-                "duration_minutes": int(duration),
-                "priority": priority_map[priority],
-                "frequency": task_frequency,
-                "scheduled_time": datetime.combine(selected_date, scheduled_time),
-                "is_completed": False,
-            }
+        Scheduler(owner).schedule_walk(
+            pet=target_pet,
+            when=datetime.combine(selected_date, scheduled_time),
+            duration_minutes=int(duration),
+            priority=priority_map[priority],
+            frequency=task_frequency,
         )
 
 flat_tasks = [
-    {"pet": pet_name_key, **task}
-    for pet_name_key, info in st.session_state.pets.items()
-    for task in info["tasks"]
+    {
+        "pet": existing_pet.name,
+        "description": task.description,
+        "duration_minutes": task.duration_minutes,
+        "priority": task.priority,
+        "frequency": task.frequency,
+        "scheduled_time": task.scheduled_time,
+        "is_completed": task.is_completed,
+    }
+    for existing_pet in owner.get_pets()
+    for task in existing_pet.get_tasks()
 ]
 
 if flat_tasks:
@@ -153,22 +161,7 @@ st.subheader("Build Schedule")
 st.caption("Generate and show today's prioritized task plan.")
 
 if st.button("Generate schedule"):
-    owner = Owner(name=owner_name, available_minutes=int(available_minutes))
-
-    for pet_name_key, pet_data in st.session_state.pets.items():
-        pet = Pet(name=pet_name_key, species=pet_data["species"], age=pet_data["age"])
-        for task_data in pet_data["tasks"]:
-            pet.add_task(
-                Task(
-                    description=task_data["description"],
-                    scheduled_time=task_data["scheduled_time"],
-                    frequency=task_data["frequency"],
-                    is_completed=task_data["is_completed"],
-                    duration_minutes=task_data["duration_minutes"],
-                    priority=task_data["priority"],
-                )
-            )
-        owner.add_pet(pet)
+    owner = st.session_state.owner
 
     scheduler = Scheduler(owner=owner)
     todays_tasks = scheduler.get_todays_tasks()
