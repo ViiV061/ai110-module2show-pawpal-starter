@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import List, Optional, Tuple
 
 
@@ -11,10 +12,12 @@ class Owner:
 		self._pets: List[Pet] = []
 
 	def add_pet(self, pet: Pet) -> None:
-		pass
+		"""Add a pet to the owner's pet list."""
+		self._pets.append(pet)
 
 	def get_pets(self) -> List[Pet]:
-		pass
+		"""Return the list of pets owned by this owner."""
+		return self._pets
 
 
 @dataclass
@@ -24,7 +27,7 @@ class Task:
 	duration: int
 	priority: int
 	is_recurring: bool
-	scheduled_time: str
+	scheduled_time: Optional[datetime] = None
 
 	def is_conflicting(self, other: Task) -> bool:
 		pass
@@ -38,15 +41,18 @@ class Pet:
 	_tasks: List[Task] = field(default_factory=list)
 
 	def add_task(self, task: Task) -> None:
-		pass
+		"""Add a task to the pet's task list."""
+		self._tasks.append(task)
 
 	def get_tasks(self) -> List[Task]:
-		pass
+		"""Return the list of tasks assigned to this pet."""
+		return self._tasks
 
 
 class Scheduler:
-	def __init__(self, pet: Optional[Pet] = None) -> None:
-		self._pet = pet
+	def __init__(self, owner: Owner) -> None:
+		"""Initialize scheduler with an Owner to manage all their pets' tasks."""
+		self._owner = owner
 		self._tasks: List[Task] = []
 
 	def sort_tasks(self) -> List[Task]:
